@@ -1,11 +1,13 @@
 package ua.training.model.service;
 
 import ua.training.model.entity.Track;
-import ua.training.model.entity.TracklistDB;
+import ua.training.model.TracklistDB;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Service that provides common tracklist/album operations
@@ -19,11 +21,10 @@ public class TracksService {
      * @param tracklist Tracklist from database
      */
     public void load(List<Track> tracklist) {
-        tracklist.clear();
-        for (TracklistDB track : TracklistDB.values()) {
-            tracklist.add(new Track(track.getId(), track.getName(), track.getPerformer(),
-                                    track.getGenre(), track.getDuration()));
-        }
+        clear(tracklist);
+        Stream.of(TracklistDB.values()).map(t -> new Track(t.getId(), t.getName(), t.getPerformer(),
+                                                           t.getGenre(), t.getDuration()))
+                                       .forEach(tracklist::add);
     }
 
     /**
@@ -49,17 +50,9 @@ public class TracksService {
      * @param capacity Capacity of album in seconds
      */
     public void write(List<Track> tracklist, List<Track> album, String capacity) {
-        album.clear();
-        int tracksDuration = 0;
-        int albumCapacity = Integer.parseInt(capacity);
-
-        for (Track track : tracklist) {
-            if (albumCapacity < tracksDuration + track.getDuration()) {
-                break;
-            }
-            album.add(track);
-            tracksDuration += track.getDuration();
-        }
+        clear(album);
+        AtomicInteger albumCapacity = new AtomicInteger(Integer.parseInt(capacity));
+        tracklist.stream().filter(t -> albumCapacity.addAndGet(-t.getDuration()) >= 0).forEach(album::add);
     }
 
     /**
@@ -87,10 +80,9 @@ public class TracksService {
      * @return List of tracks from album that have duration in the range [min, max] seconds
      */
     public List<Track> searchByDuration(List<Track> album, String min, String max) {
-        int minDuration = Integer.parseInt(min);
-        int maxDuration = Integer.parseInt(max);
-        return album.stream().filter(track -> (track.getDuration() >= minDuration
-                                            && track.getDuration() <= maxDuration)).collect(Collectors.toList());
+        return album.stream().filter(t -> (t.getDuration() >= Integer.parseInt(min)
+                                           && t.getDuration() <= Integer.parseInt(max)))
+                             .collect(Collectors.toList());
     }
 
 }

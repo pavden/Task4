@@ -1,4 +1,6 @@
-package ua.training.model.entity;
+package ua.training.model;
+
+import ua.training.model.entity.Genre;
 
 /**
  * Enum that emulates tracklist database
